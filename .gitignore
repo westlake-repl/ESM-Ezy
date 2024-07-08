@@ -1,0 +1,6 @@
+data
+__pycache__
+pfam_accessions.txt
+protein2ipr.dat.gz
+analysis
+ckpt
