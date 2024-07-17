@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # data
     print("Reading candidate data...")
     candidate_dataset = FastaDataset(candidate_data)
-    candidate_dataloader = DataLoader(candidate_dataset[:100], batch_size=64, shuffle=True,
+    candidate_dataloader = DataLoader(candidate_dataset, batch_size=64, shuffle=True,
                                     collate_fn=candidate_dataset.collate_fn, drop_last=False, pin_memory=True)
     
     seed_dataset = FastaDataset(seed_data)

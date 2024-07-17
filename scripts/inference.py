@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # data
     print("Reading candidate data...")
     inference_dataset = FastaDataset(inference_data)
-    inference_dataloader = DataLoader(inference_dataset[:100], batch_size=64, shuffle=True,
+    inference_dataloader = DataLoader(inference_dataset, batch_size=64, shuffle=True,
                                     collate_fn=inference_dataset.collate_fn, drop_last=False, pin_memory=True)
     
     inference_list = []
