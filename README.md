@@ -29,10 +29,18 @@ wget https://dl.fbaipublicfiles.com/fair-esm/models/esm1b_t33_650M_UR50S-contact
 python scripts/train.py --train_positive_data data/train/train_positive.fa --train_negative_data data/train/train_negative.fa --test_positive_data data/train/test_positive.fa --test_negative_data data/train/test_negative.fa --model_path ckpt/esm1b_t33_650M_UR50S.pt
 ```
 
+## inference
+
+1. inference from uniref50 database:
+
+```
+python scripts/inference.py --model_path ckpt/esm1b_t33_650M_UR50S.pt --checkpoint_path ckpt/model_laccase.pkl --inference_data data/train/train_positive.fa  --output_path data/retrieval
+```
+
 ## Search
 
 1. load the trained ESM-Ezy model and inference on the candidate sequences:
 
 ```
-python inference.py --model_path ckpt/model_laccase.pkl --candidate_data data/candidate_data.pkl --seed_data data/seed_data.pkl --output_path output/
+python scripts/retrieval.py --model_path ckpt/esm1b_t33_650M_UR50S.pt --checkpoint_path ckpt/model_laccase.pkl --candidate_data data/retrieval/candidate.fa --seed_data data/retrieval/fitness.txt  --output_path data/retrieval
 ```

@@ -3,13 +3,13 @@ from torch.utils.data import Dataset
 from .fasta_dataset import FastaDataset
 
 class RetrievalDataset(Dataset):
-    def __init__(self, positive_path, negative_path):
+    def __init__(self, candidate_path, seed_path):
         super(RetrievalDataset, self).__init__()
-        self.positive_path = positive_path
-        self.negative_path = negative_path
+        self.candidate_path = candidate_path
+        self.seed_path = seed_path
         
-        self.positive_dataset = FastaDataset(positive_path, label=1)
-        self.negative_dataset = FastaDataset(negative_path, label=0)
+        self.candidate_dataset = FastaDataset(candidate_path, label=1)
+        self.seed_dataset = FastaDataset(seed_path, label=0)
         
     def __len__(self):
         return len(self.positive_dataset) + len(self.negative_dataset)

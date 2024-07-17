@@ -21,4 +21,6 @@ class FastaDataset(Dataset):
     
     def __len__(self):
         return len(self.fasta_list)
-
+    
+    def collate_fn(self, batch):
+        return batch

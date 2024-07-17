@@ -19,10 +19,13 @@ class LaccaseModel(nn.Module):
             self._device = next(self.modelEsm.parameters()).device
         return self._device
 
-    def forward(self, data):
+    def forward(self, data, return_repr=False):
         out_result = self._get_representations(data)
         out_put = self.dnn(out_result).squeeze()
-        return out_put
+        if return_repr:
+            return out_put, out_result
+        else:
+            return out_put
     
     def _get_layers(self):
         return len(self.modelEsm.layers)
@@ -58,14 +61,11 @@ class LaccaseModel(nn.Module):
         return names
     
     @classmethod
-    def from_pretrained(cls, pretrained_model_path, state_dict_path=None, device=None):
+    def from_pretrained(cls, pretrained_model_path, state_dict_path=None):
         model = cls(pretrained_model_path)
         if state_dict_path is not None:
             print(f"Loading state dict from {state_dict_path}")
             model.load_state_dict(torch.load(state_dict_path))
-        if device is not None:
-            model = model.to(device)
-            model.device = device
         return model
 
         
