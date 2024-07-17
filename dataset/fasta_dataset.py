@@ -21,3 +21,4 @@ class FastaDataset(Dataset):
     
     def __len__(self):
         return len(self.fasta_list)
+

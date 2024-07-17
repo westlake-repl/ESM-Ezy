@@ -10,8 +10,14 @@ class LaccaseModel(nn.Module):
             nn.ReLU(),
             nn.Linear(1280, 2)
         )
+    
+        self._device = None
         
-        self.device = None
+    @property
+    def device(self):
+        if self._device is None:
+            self._device = next(self.modelEsm.parameters()).device
+        return self._device
 
     def forward(self, data):
         out_result = self._get_representations(data)
@@ -20,6 +26,10 @@ class LaccaseModel(nn.Module):
     
     def _get_layers(self):
         return len(self.modelEsm.layers)
+    
+    @property
+    def layers(self):
+        return self.get_layers()
     
     def get_layers(self):
         return self._get_layers()

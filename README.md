@@ -26,7 +26,7 @@ wget https://dl.fbaipublicfiles.com/fair-esm/models/esm1b_t33_650M_UR50S-contact
 4. Train ESM-Ezy:
 
 ```
-python train.py --positive_data data/positive_data.pkl --negative_data data/negative_data.pkl
+python scripts/train.py --train_positive_data data/train/train_positive.fa --train_negative_data data/train/train_negative.fa --test_positive_data data/train/test_positive.fa --test_negative_data data/train/test_negative.fa --model_path ckpt/esm1b_t33_650M_UR50S.pt
 ```
 
 ## Search
