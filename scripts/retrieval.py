@@ -20,3 +20,4 @@ def parse_args():
     parser.add_argument('-ckpt', '--checkpoint_path', type=str, default=None)
     parser.add_argument('-q', '--query_path', type=str, required=True)
     parser.add_argument('-repr', '--repr_path', type=str, required=True)
+    
