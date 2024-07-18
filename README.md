@@ -1,5 +1,13 @@
 # ESM-Ezy
 
+## Installation
+
+To install ESM-Ezy, follow the commands below:
+
+```
+conda env create -f environment.yml
+```
+
 ## Training
 
 To train ESM-Ezy, follow the steps below:
@@ -34,7 +42,7 @@ python scripts/train.py --train_positive_data data/train/train_positive.fa --tra
 1. inference from uniref50 database:
 
 ```
-python scripts/inference.py --model_path ckpt/esm1b_t33_650M_UR50S.pt --checkpoint_path ckpt/model_laccase.pkl --inference_data data/train/train_positive.fa  --output_path data/retrieval
+python scripts/inference.py --model_path ckpt/esm1b_t33_650M_UR50S.pt --checkpoint_path ckpt/model_laccase.pkl --inference_data data/inference/uniref50.fasta  --output_path data/retrieval
 ```
 
 ## Search
