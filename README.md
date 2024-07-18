@@ -1,13 +1,5 @@
 # ESM-Ezy
 
-## Installation
-
-To install ESM-Ezy, follow the commands below:
-
-```
-conda env create -f environment.yml
-```
-
 ## Training
 
 To train ESM-Ezy, follow the steps below:
@@ -21,7 +13,7 @@ git clone https://github.com/westlake-repl/ESM-Ezy.git
 2. Install the required packages:
 
 ```
-pip install -r requirements.txt
+conda env create -f environment.yml
 ```
 
 3. Download the pre-trained ESM-1b model:
@@ -50,5 +42,5 @@ python scripts/inference.py --model_path ckpt/esm1b_t33_650M_UR50S.pt --checkpoi
 1. load the trained ESM-Ezy model and inference on the candidate sequences:
 
 ```
-python scripts/retrieval.py --model_path ckpt/esm1b_t33_650M_UR50S.pt --checkpoint_path ckpt/model_laccase.pkl --candidate_data data/retrieval/candidate.fa --seed_data data/retrieval/fitness.txt  --output_path data/retrieval
+python scripts/retrieval.py --model_path ckpt/esm1b_t33_650M_UR50S.pt --checkpoint_path ckpt/model_laccase.pkl --candidate_data data/retrieval/candidate.fa --seed_data data/retrieval/fitness.fa  --output_path data/retrieval
 ```

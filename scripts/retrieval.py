@@ -78,4 +78,4 @@ if __name__ == '__main__':
         f.write("seed_id,candidate_id,candidate_sequence,distance\n")
         for res in result_list:
             seed_info, candidate_info, distance = res
-            f.write(f"{seed_info[0]},{candidate_info[0][0]},{candidate_info[0][1]},{distance}\n")
+            f.write(f"{seed_info[0][0]},{candidate_info[0][0]},{candidate_info[0][1]},{distance}\n")
