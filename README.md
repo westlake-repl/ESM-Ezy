@@ -1,5 +1,13 @@
 # ESM-Ezy
 
+## Dataset and checkpoint
+
+To get dataset and model checkpoint, please refer to [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12776629.svg)](https://doi.org/10.5281/zenodo.12776629).
+
+Download the `data.zip` file and extract it to the `data` directory.
+
+Download the `ckpt.zip` file and extract it to the `ckpt` directory.
+
 ## Training
 
 To train ESM-Ezy, follow the steps below:
