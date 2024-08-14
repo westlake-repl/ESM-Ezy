@@ -21,7 +21,7 @@ class LaccaseModel(nn.Module):
 
     def forward(self, data, return_repr=False):
         out_result = self._get_representations(data)
-        out_put = self.dnn(out_result).squeeze()
+        out_put = self.dnn(out_result)
         if return_repr:
             return out_put, out_result
         else:
