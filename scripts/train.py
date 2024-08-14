@@ -60,11 +60,11 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-5)
     # data
-    train_dataset = TrainingDataset(positive_path=train_positive_data, negative_path=train_negative_data)
-    train_dataloader = DataLoader(dataset=train_dataset, batch_size=4, shuffle=True,
+    train_dataset = TrainingDataset(positive_path=train_positive_data, negative_path=train_negative_data, dynamic_negative_sampling=True)
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True,
                                     collate_fn=train_dataset.collate_fn, drop_last=False, pin_memory=True)
     test_dataset = TrainingDataset(positive_path=test_positive_data, negative_path=test_negative_data)
-    test_dataloader = DataLoader(dataset=test_dataset, batch_size=4, shuffle=True,
+    test_dataloader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=True,
                                     collate_fn=test_dataset.collate_fn, drop_last=False, pin_memory=True)
 
     Test_Acc = []
