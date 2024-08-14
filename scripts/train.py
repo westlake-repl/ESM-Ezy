@@ -14,6 +14,7 @@ sys.path.append("/zhouxibin/workspaces/ESM-Ezy")
 from model import LaccaseModel
 from dataset import TrainingDataset
 import argparse
+from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -25,6 +26,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--epoch', type=int, default=1000)
     parser.add_argument('--last_layers', type=int, default=1)
+    parser.add_argument('--save_path', type=str, default=".")
     args = parser.parse_args()
     return args
 
@@ -41,6 +43,7 @@ if __name__ == '__main__':
     BATCH_SIZE = int(args.batch_size)
     EPOCH = int(args.epoch)
     last_layers = int(args.last_layers)
+    total_save_path = args.save_path
 
     # model
     print("Loading model...")
@@ -93,7 +96,7 @@ if __name__ == '__main__':
                 predict_test = {}
                 predict_really_test = {}
                 grand_truth_test = {0:len(train_dataset.negative_dataset),1:len(train_dataset.positive_dataset)}
-                for m, test in enumerate(test_dataloader):
+                for m, test in enumerate(tqdm(test_dataloader)):
                     data_test, label_test = test
                     if model.device is not None:
                         label_test = label_test.to(device)
@@ -129,22 +132,25 @@ if __name__ == '__main__':
                         out = out + "Category_" + str(m) + "\t" + "predict_really " + str(predict_really_test[m]) + \
                                 "\t" + "predict " + str(predict_test[m]) + "\t" + "     Precision " + str(
                                 predict_really_test[m] / predict_test[m]) + "\t" \
-                                + "  recall" + str(predict_really_test[m] / grand_truth_test[m]) + "\n"
+                                + "recall" + str(predict_really_test[m] / grand_truth_test[m])[:5] + "\n"
                 print("Epoch_item: {} \t\t Correct_num: {} \t\t total: {} \t\t Accuracy on test data: {} \n".format(
                     epoch, correct_test, total_test, correct_test / total_test))
                 print(out)
-                with open(f"./result/dnn_result_test_lastlayer{last_layers}.txt", "a+", encoding="utf-8") as output:
+                result_dir = f"{total_save_path}/result"
+                if not os.path.exists(result_dir):
+                    os.makedirs(result_dir)
+                with open(f"{result_dir}/dnn_result_test_lastlayer{last_layers}.txt", "a+", encoding="utf-8") as output:
                     output.write(
                             "Epoch_item: {} \t\t Correct_num: {} \t\t total: {} \t\t Accuracy on test data: {} \n".format(
                                 epoch, correct_test, total_test, correct_test / total_test))
                     output.write(out)
 
                 Test_Acc.append(correct_test / total_test)
-                with open(f"./result/dnn_result_test_ACC_lastlayer{last_layers}.txt", "a+", encoding="utf-8") as output:
+                with open(f"{result_dir}/dnn_result_test_ACC_lastlayer{last_layers}.txt", "a+", encoding="utf-8") as output:
                     output.write(str(Test_Acc) + "\n")
                 model.train()
         # save model
-        save_path = f"./ckpt/dnn_model_lastlayer{last_layers}"
+        save_path = f"{total_save_path}/ckpt/dnn_model_lastlayer{last_layers}"
         if not os.path.exists(save_path):
             os.makedirs(save_path)
         torch.save(model.state_dict(), os.path.join(save_path, f"epoch{epoch}.pth"))
