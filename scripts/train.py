@@ -9,7 +9,7 @@ import csv
 # from apex import amp
 
 import sys
-sys.path.append("/zhouxibin/workspaces/ESM-Ezy")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # from loading_Data import TrainData, TestData
 from model import LaccaseModel
 from dataset import TrainingDataset
