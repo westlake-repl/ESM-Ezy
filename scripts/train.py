@@ -27,6 +27,8 @@ def parse_args():
     parser.add_argument('--epoch', type=int, default=1000)
     parser.add_argument('--last_layers', type=int, default=1)
     parser.add_argument('--save_path', type=str, default=".")
+    # Add Early Stop parameter with default=None to indicate disabled
+    parser.add_argument('--patience', type=int, default=None, help='Number of epochs to wait before early stop. If not provided, early stop is disabled.')
     args = parser.parse_args()
     return args
 
@@ -44,7 +46,18 @@ if __name__ == '__main__':
     EPOCH = int(args.epoch)
     last_layers = int(args.last_layers)
     total_save_path = args.save_path
-
+    patience = args.patience  # None if not provided
+    
+    # ==================== Early Stop Initialization ====================
+    if patience is not None:
+        # Early stop is enabled when patience is provided
+        best_acc = 0.0           # Record the best accuracy
+        best_epoch = -1          # Record the epoch where best accuracy occurred
+        wait_counter = 0         # Counter for no improvement
+        print(f"Early stop enabled with patience={patience}")
+    else:
+        print("Early stop disabled")
+    
     # model
     print("Loading model...")
     model = LaccaseModel(model_path)
@@ -72,6 +85,12 @@ if __name__ == '__main__':
 
     Test_Acc = []
     for epoch in range(EPOCH):
+        # ==================== Early Stop Check ====================
+        if patience is not None and wait_counter >= patience:
+            print(f"\nEarly stopping triggered at epoch {epoch}!")
+            print(f"Best test accuracy {best_acc:.4f} achieved at epoch {best_epoch}")
+            break
+        
         # train
         model.train()
         print(len(train_dataloader))
@@ -95,7 +114,7 @@ if __name__ == '__main__':
                 correct_test = 0
                 predict_test = {}
                 predict_really_test = {}
-                grand_truth_test = {0:len(train_dataset.negative_dataset),1:len(train_dataset.positive_dataset)}
+                ground_truth_test = {0:len(train_dataset.negative_dataset),1:len(train_dataset.positive_dataset)}
                 for m, test in enumerate(tqdm(test_dataloader)):
                     data_test, label_test = test
                     if model.device is not None:
@@ -127,14 +146,17 @@ if __name__ == '__main__':
 
 
                 out = ""
-                for m in range(len(grand_truth_test)):
+                for m in range(len(ground_truth_test)):
                     if m in predict_test and m in predict_really_test:
                         out = out + "Category_" + str(m) + "\t" + "predict_really " + str(predict_really_test[m]) + \
                                 "\t" + "predict " + str(predict_test[m]) + "\t" + "     Precision " + str(
                                 predict_really_test[m] / predict_test[m]) + "\t" \
-                                + "recall" + str(predict_really_test[m] / grand_truth_test[m])[:5] + "\n"
+                                + "recall" + str(predict_really_test[m] / ground_truth_test[m])[:5] + "\n"
+                
+                current_acc = correct_test / total_test
+                Test_Acc.append(current_acc)
                 print("Epoch_item: {} \t\t Correct_num: {} \t\t total: {} \t\t Accuracy on test data: {} \n".format(
-                    epoch, correct_test, total_test, correct_test / total_test))
+                    epoch, correct_test, total_test, current_acc))
                 print(out)
                 result_dir = f"{total_save_path}/result"
                 if not os.path.exists(result_dir):
@@ -142,15 +164,33 @@ if __name__ == '__main__':
                 with open(f"{result_dir}/dnn_result_test_lastlayer{last_layers}.txt", "a+", encoding="utf-8") as output:
                     output.write(
                             "Epoch_item: {} \t\t Correct_num: {} \t\t total: {} \t\t Accuracy on test data: {} \n".format(
-                                epoch, correct_test, total_test, correct_test / total_test))
+                                epoch, correct_test, total_test, current_acc))
                     output.write(out)
 
-                Test_Acc.append(correct_test / total_test)
                 with open(f"{result_dir}/dnn_result_test_ACC_lastlayer{last_layers}.txt", "a+", encoding="utf-8") as output:
                     output.write(str(Test_Acc) + "\n")
+                    
+                # ==================== Early Stop Update ====================
+                if patience is not None:
+                    if current_acc > best_acc:
+                        best_acc = current_acc
+                        best_epoch = epoch
+                        wait_counter = 0  # Reset counter
+                        print(f"Test accuracy improved to {best_acc:.4f} at epoch {best_epoch}")
+                    else:
+                        wait_counter += 1
+                        print(f"Test accuracy not improved. Patience: {wait_counter}/{patience}")
+                    
                 model.train()
+        
         # save model
         save_path = f"{total_save_path}/ckpt/dnn_model_lastlayer{last_layers}"
         if not os.path.exists(save_path):
             os.makedirs(save_path)
         torch.save(model.state_dict(), os.path.join(save_path, f"epoch{epoch}.pth"))
+        
+    # ==================== Final Report ====================
+    if patience is not None:
+        print(f"\nTraining completed with early stop! Best test accuracy: {best_acc:.4f} at epoch {best_epoch}")
+    else:
+        print("\nTraining completed without early stop")

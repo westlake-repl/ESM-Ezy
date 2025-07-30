@@ -40,6 +40,11 @@ wget https://dl.fbaipublicfiles.com/fair-esm/regression/esm1b_t33_650M_UR50S-con
 ```
 python scripts/train.py --train_positive_data data/train/train_positive.fa --train_negative_data data/train/train_negative.fa --test_positive_data data/train/test_positive.fa --test_negative_data data/train/test_negative.fa --model_path ckpt/esm1b_t33_650M_UR50S.pt
 ```
+We also add early stopping to determine the training process is ready, you can try with:
+
+```
+python scripts/train.py --train_positive_data data/train/train_positive.fa --train_negative_data data/train/train_negative.fa --test_positive_data data/train/test_positive.fa --test_negative_data data/train/test_negative.fa --model_path ckpt/esm1b_t33_650M_UR50S.pt --patience 10
+```
 
 ## inference
 
