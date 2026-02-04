@@ -1,63 +1,161 @@
-# ESM-Ezy
+# ESM2-Ezy
 
-## Dataset and checkpoint
+ESM2-based pipeline that supports **fair-esm** embeddings or **precomputed** embeddings based on ESM-Ezy pipeline.
 
-To get dataset and model checkpoint, please refer to [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15258919.svg)](https://doi.org/10.5281/zenodo.15258919).
+![CI](https://img.shields.io/github/actions/workflow/status/paleblueillud/esm2_ezy/ci.yml?branch=main)
+![License](https://img.shields.io/github/license/paleblueillud/esm2_ezy)
+![Python](https://img.shields.io/badge/python-3.10-blue)
 
-Download the `data.zip` file and extract it to the `data` directory.
+## Table of contents
+- [Quickstart](#quickstart)
+- [Installation](#installation)
+  - [CPU (portable)](#cpu-portable)
+  - [CUDA (Linux cluster)](#cuda-linux-cluster)
+  - [Apple Silicon (MPS)](#apple-silicon-mps)
+- [Running](#running)
+  - [fair-esm embeddings (on-the-fly)](#fair-esm-embeddings-on-the-fly)
+  - [Precomputed embeddings](#precomputed-embeddings)
+- [Caching and offline clusters](#caching-and-offline-clusters)
+- [Tests](#tests)
+- [Reproducibility notes](#reproducibility-notes)
 
-Download the `ckpt.zip` file and extract it to the `ckpt` directory.
-
-### About the `train_positive.fa` and `train_negative.fa` files
-
-We apologize that the `train_positive.fa` (referred to as the original training positive file) and `train_negative.fa` (referred to as the original training negative file) included in `data.zip` do not exactly match the manuscript description. The original training positive file, which initially contained **117** entries, underwent incomplete data duplication. The revised `train_positive.fa` located in root directory of [Zenodo](https://doi.org/10.5281/zenodo.15258919) now includes deduplicated **117** entries. Similarly, the `train_negative.fa` has been updated. It is important to note, however, that since the negative samples are **randomly sampled from `train_negative.fa` during training** (which is sufficiently large relative to `train_positive.fa`), minor changes to the latter have minimal impact on the training process. So even if you have downloaded the past version of `train_positive.fa` and `train_negative.fa`, the training process should still work fine.
-
-## Training
-
-To train ESM-Ezy, follow the steps below:
-
-1. Clone the repository:
-
-```
-git clone https://github.com/westlake-repl/ESM-Ezy.git
-```
-
-2. Install the required packages:
-
-```
-conda env create -f environment.yml
-```
-
-3. Download the pre-trained ESM-1b model:
-
-```
-wget https://dl.fbaipublicfiles.com/fair-esm/models/esm1b_t33_650M_UR50S.pt -O ckpt/esm1b_t33_650M_UR50S.pt
-wget https://dl.fbaipublicfiles.com/fair-esm/regression/esm1b_t33_650M_UR50S-contact-regression.pt -O ckpt/esm1b_t33_650M_UR50S-contact-regression.pt
+## Quickstart
+```bash
+mamba env create -f environment.yml -n esm2_ezy
+conda activate esm2_ezy
+python -c "import torch, esm, numpy; print('ok')"
+python scripts/inference.py \
+  --inference_data data/petase/pazy.fasta \
+  --output_path /tmp/esm2_ezy_infer \
+  --embedding_source fair_esm2 \
+  --esm_checkpoint esm2_t6_8M_UR50D \
+  --device auto
+pytest -q
 ```
 
-4. Train ESM-Ezy:
+## Installation
 
-```
-python scripts/train.py --train_positive_data data/train/train_positive.fa --train_negative_data data/train/train_negative.fa --test_positive_data data/train/test_positive.fa --test_negative_data data/train/test_negative.fa --model_path ckpt/esm1b_t33_650M_UR50S.pt
-```
-We also add early stopping to determine the training process is ready, you can try with:
+### CPU (portable)
+Prefer `mamba` (faster), or use `conda` if needed.
 
-```
-python scripts/train.py --train_positive_data data/train/train_positive.fa --train_negative_data data/train/train_negative.fa --test_positive_data data/train/test_positive.fa --test_negative_data data/train/test_negative.fa --model_path ckpt/esm1b_t33_650M_UR50S.pt --patience 10
-```
-
-## inference
-
-1. inference from uniref50 database:
-
-```
-python scripts/inference.py --model_path ckpt/esm1b_t33_650M_UR50S.pt --checkpoint_path ckpt/model_laccase.pkl --inference_data data/inference/uniref50.fasta  --output_path data/retrieval
+```bash
+mamba env create -f environment.yml -n esm2_ezy
+conda activate esm2_ezy
 ```
 
-## Search
+### CUDA (Linux cluster)
+Create the base env, then upgrade PyTorch with CUDA support.
 
-1. load the trained ESM-Ezy model and inference on the candidate sequences:
+```bash
+mamba env create -f environment.yml -n esm2_ezy
+conda activate esm2_ezy
 
+# Choose a CUDA version compatible with your cluster/driver.
+conda install -n esm2_ezy pytorch pytorch-cuda=12.1 -c pytorch -c nvidia
 ```
-python scripts/retrieval.py --model_path ckpt/esm1b_t33_650M_UR50S.pt --checkpoint_path ckpt/model_laccase.pkl --candidate_data data/retrieval/candidate.fa --seed_data data/retrieval/fitness.fa  --output_path data/retrieval
+
+### Apple Silicon (MPS)
+```bash
+mamba env create -f environment.yml -n esm2_ezy
+conda activate esm2_ezy
+python - <<'PY'
+import torch
+print("mps available:", torch.backends.mps.is_available())
+PY
 ```
+
+## Running
+
+### Training
+Training expects FASTA files for positive/negative splits.
+
+```bash
+python scripts/train.py \
+  --train_positive_data data/petase/positive_train.fasta \
+  --train_negative_data data/petase/negative_train.fasta \
+  --test_positive_data data/petase/positive_test.fasta \
+  --test_negative_data data/petase/negative_test.fasta \
+  --embedding_source fair_esm2 \
+  --esm_checkpoint esm2_t36_3B_UR50D \
+  --device auto \
+  --precision fp32 \
+  --batch_size 16 \
+  --epoch 100 \
+  --patience 10
+```
+
+If you use precomputed embeddings, pass `--embedding_source precomputed` and `--precomputed_embeddings_dir`.
+
+### fair-esm embeddings (on-the-fly)
+Requires sequences (FASTA). ESM2 weights will download on first use.
+
+```bash
+python scripts/inference.py \
+  --inference_data data/petase/pazy.fasta \
+  --output_path /tmp/esm2_ezy_infer \
+  --embedding_source fair_esm2 \
+  --esm_checkpoint esm2_t36_3B_UR50D \
+  --device auto \
+  --precision fp32
+```
+
+### Precomputed embeddings
+Requires IDs that map to embedding files. Supported formats: `.npy`, `.npz`, `.pt`.
+
+Directory with one file per ID:
+```bash
+python scripts/inference.py \
+  --inference_data data/petase/pazy.fasta \
+  --output_path /tmp/esm2_ezy_infer \
+  --embedding_source precomputed \
+  --precomputed_embeddings_dir /path/to/embeddings \
+  --precomputed_format auto \
+  --precomputed_granularity per_sequence
+```
+
+### Search / Retrieval
+Use the candidate FASTA and a seed FASTA. FAISS is optional; disable it via `ESM_EZY_USE_FAISS=0`.
+
+```bash
+ESM_EZY_USE_FAISS=0 python scripts/retrieval.py \
+  --candidate_data data/petase/pazy.fasta \
+  --seed_data data/petase/pazy_search_1.fasta \
+  --output_path results/inference \
+  --embedding_source fair_esm2 \
+  --esm_checkpoint esm2_t36_3B_UR50D \
+  --device auto \
+  --precision fp32
+```
+
+Single `.npz` container (keys are IDs; no FASTA required):
+```bash
+python scripts/inference.py \
+  --output_path results/search \
+  --embedding_source precomputed \
+  --precomputed_embeddings_dir /path/to/embeddings.npz \
+  --precomputed_format npz \
+  --precomputed_granularity per_sequence
+```
+
+## Caching and offline clusters
+Set `TORCH_HOME` to a shared filesystem to reuse cached weights:
+
+```bash
+export TORCH_HOME=/shared/torch-cache
+python -c "import esm; esm.pretrained.esm2_t36_3B_UR50D(); print('ok')"
+```
+
+Download weights on a login node, then run jobs with the same `TORCH_HOME`.
+
+## Tests
+```bash
+pytest -q
+```
+
+## Reproducibility notes
+```bash
+conda env create -f environment.yml -n esm2_ezy
+conda env export --no-builds > env.lock.yml
+```
+
+If you need fully locked environments, consider `conda-lock` as a follow-up.

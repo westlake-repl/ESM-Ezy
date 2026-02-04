@@ -17,7 +17,7 @@ mkl.get_max_threads()
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-m', '--model_path', type=str, required=True)
+    parser.add_argument('-m', '--model_path', type=str, default=None)
     parser.add_argument('-ckpt', '--checkpoint_path', type=str, default=None)
     parser.add_argument('-p', '--positive_path', type=str, required=True)
     parser.add_argument('-n', '--negative_path', type=str, required=True)
@@ -26,6 +26,14 @@ def parse_args():
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--shuffle', default=False, action='store_true')
     parser.add_argument('--save_every', type=int, default=1000)
+    parser.add_argument('--embedding_source', type=str, default="fair_esm2", choices=["fair_esm2", "precomputed"])
+    parser.add_argument('--esm_checkpoint', type=str, default="esm2_t36_3B_UR50D")
+    parser.add_argument('--device', type=str, default="auto", choices=["auto", "cpu", "cuda", "mps"])
+    parser.add_argument('--precision', type=str, default="fp32", choices=["fp32", "fp16", "bf16"])
+    parser.add_argument('--precomputed_embeddings_dir', type=str, default=None)
+    parser.add_argument('--precomputed_format', type=str, default="auto", choices=["auto", "npy", "npz", "pt"])
+    parser.add_argument('--precomputed_granularity', type=str, default="per_sequence",
+                        choices=["per_sequence", "per_residue"])
     args = parser.parse_args()
     return args
 
@@ -50,6 +58,7 @@ def main(args=None):
     # get args
     model_path = args.model_path
     checkpoint_path = args.checkpoint_path
+    esm_checkpoint = args.esm_checkpoint if model_path is None else model_path
     positive_path = args.positive_path
     negative_path = args.negative_path
     save_dir = args.save_dir
@@ -64,8 +73,18 @@ def main(args=None):
     
     # load model
     torch.cuda.set_device(rank)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = LaccaseModel.from_pretrained(model_path, state_dict_path=checkpoint_path, device=device)
+    model = LaccaseModel.from_pretrained(
+        pretrained_model_path=esm_checkpoint,
+        state_dict_path=checkpoint_path,
+        embedding_source=args.embedding_source,
+        esm_checkpoint=esm_checkpoint,
+        device=args.device,
+        precision=args.precision,
+        precomputed_embeddings_dir=args.precomputed_embeddings_dir,
+        precomputed_format=args.precomputed_format,
+        precomputed_granularity=args.precomputed_granularity,
+    )
+    model = model.to(model.device)
     model.eval()
     
     # load dataset
@@ -108,15 +127,16 @@ def main(args=None):
         if sample_idx <= max_sample_idx:
             save_last = sample_idx
             continue
-        sequences, labels = batch
+        sequences = batch["sequences"]
+        labels = batch["labels"]
         count += len(sequences)
         # collect labels in a list
         total_labels.extend(labels)
         # collect names in a list
-        names = model.get_names(sequences)
+        names = batch["ids"]
         total_names.extend(names)
         with torch.no_grad():
-            representations = model.get_representations(sequences)
+            representations = model.get_representations(batch)
             total_reprs.append(representations.cpu().numpy())
             
         # save representations and labels every 1000 batches

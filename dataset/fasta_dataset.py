@@ -23,4 +23,5 @@ class FastaDataset(Dataset):
         return len(self.fasta_list)
     
     def collate_fn(self, batch):
-        return batch
+        ids, sequences = zip(*batch)
+        return {"ids": list(ids), "sequences": list(sequences)}

@@ -30,5 +30,5 @@ class TrainingDataset(Dataset):
     
     def collate_fn(self, batch):
         sequences, labels = zip(*batch)
-        
-        return sequences, torch.tensor(labels)
+        ids, seqs = zip(*sequences)
+        return {"ids": list(ids), "sequences": list(seqs), "labels": torch.tensor(labels)}

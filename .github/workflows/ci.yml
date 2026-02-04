@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: esm2_ezy
+          environment-file: environment.yml
+          auto-activate-base: false
+          use-mamba: true
+      - name: Imports
+        shell: bash -l {0}
+        run: |
+          python -c "import torch, esm, numpy; print('torch', torch.__version__); print('ok')"
+      - name: Tests
+        shell: bash -l {0}
+        env:
+          ESM_EZY_SKIP_ESM_DOWNLOAD: "1"
+        run: |
+          pytest -q

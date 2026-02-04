@@ -1,5 +1,7 @@
 data
 __pycache__
+.pytest_cache
+.DS_Store
 pfam_accessions.txt
 protein2ipr.dat.gz
 analysis

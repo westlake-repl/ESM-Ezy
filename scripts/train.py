@@ -27,6 +27,14 @@ def parse_args():
     parser.add_argument('--epoch', type=int, default=1000)
     parser.add_argument('--last_layers', type=int, default=1)
     parser.add_argument('--save_path', type=str, default=".")
+    parser.add_argument('--embedding_source', type=str, default="fair_esm2", choices=["fair_esm2", "precomputed"])
+    parser.add_argument('--esm_checkpoint', type=str, default="esm2_t36_3B_UR50D")
+    parser.add_argument('--device', type=str, default="auto", choices=["auto", "cpu", "cuda", "mps"])
+    parser.add_argument('--precision', type=str, default="fp32", choices=["fp32", "fp16", "bf16"])
+    parser.add_argument('--precomputed_embeddings_dir', type=str, default=None)
+    parser.add_argument('--precomputed_format', type=str, default="auto", choices=["auto", "npy", "npz", "pt"])
+    parser.add_argument('--precomputed_granularity', type=str, default="per_sequence",
+                        choices=["per_sequence", "per_residue"])
     # Add Early Stop parameter with default=None to indicate disabled
     parser.add_argument('--patience', type=int, default=None, help='Number of epochs to wait before early stop. If not provided, early stop is disabled.')
     args = parser.parse_args()
@@ -34,14 +42,13 @@ def parse_args():
 
 if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
     args = parse_args()
     train_positive_data = args.train_positive_data
     train_negative_data = args.train_negative_data
     test_positive_data = args.test_positive_data
     test_negative_data = args.test_negative_data
     model_path = args.model_path
+    esm_checkpoint = args.esm_checkpoint if model_path is None else model_path
     BATCH_SIZE = int(args.batch_size)
     EPOCH = int(args.epoch)
     last_layers = int(args.last_layers)
@@ -60,18 +67,21 @@ if __name__ == '__main__':
     
     # model
     print("Loading model...")
-    model = LaccaseModel(model_path)
-    for name, param in model.named_parameters():
-        param.requires_grad = False
-        for last_layer in range(1, last_layers+1):
-            if f"layers.{model.layers-last_layer}." in name:
-                param.requires_grad = True
-        if "dnn" in name:
-            param.requires_grad = True
+    model = LaccaseModel(
+        pretrained_model_path=esm_checkpoint,
+        embedding_source=args.embedding_source,
+        esm_checkpoint=esm_checkpoint,
+        device=args.device,
+        precision=args.precision,
+        precomputed_embeddings_dir=args.precomputed_embeddings_dir,
+        precomputed_format=args.precomputed_format,
+        precomputed_granularity=args.precomputed_granularity,
+    )
+    model.set_trainable_last_layers(last_layers)
     for name, param in model.named_parameters():
         if param.requires_grad:
             print(name)
-    model = model.cuda()
+    model = model.to(model.device)
     
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-5)
@@ -95,10 +105,8 @@ if __name__ == '__main__':
         model.train()
         print(len(train_dataloader))
         for i, item in enumerate(train_dataloader):
-            content, label = item
-            if model.device is not None:
-                label = label.to(model.device)
-            last_result = model(content)
+            label = item["labels"].to(model.device)
+            last_result = model(item)
             loss = criterion(last_result, label)
             print("epoch: {} \t iteration : {} \t Loss: {} \t lr: {}".format(epoch, i, loss.item(),
                                                                              optimizer.param_groups[0]['lr']), flush=True)
@@ -116,12 +124,10 @@ if __name__ == '__main__':
                 predict_really_test = {}
                 ground_truth_test = {0:len(test_dataset.negative_dataset),1:len(test_dataset.positive_dataset)}
                 for m, test in enumerate(tqdm(test_dataloader)):
-                    data_test, label_test = test
-                    if model.device is not None:
-                        label_test = label_test.to(device)
+                    label_test = test["labels"].to(model.device)
 
                     with torch.no_grad():
-                        last_result_test = model(data_test).to(device)
+                        last_result_test = model(test)
 
                     # label
                     predicted = torch.argmax(last_result_test.data, dim=1)
